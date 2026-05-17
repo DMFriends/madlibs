@@ -1,13 +1,13 @@
 import java.util.*;
 
-public class MadLib
+public class MadLibs
 {
     // Private constants
 	private static final char PLACEHOLDER_START_CHARACTER = '[';
 	private static final char PLACEHOLDER_END_CHARACTER = ']';
 	
 	// File reader to get the template from the "madlib.txt" file
-	private MadLibFileReader madLibFileReader = new MadLibFileReader();
+	public static MadLibFileReader madLibFileReader = new MadLibFileReader();
 	
     public static void main(String[] args)
     {
@@ -20,7 +20,7 @@ public class MadLib
         System.out.println(replaced);
     }
     
-    private ArrayList<String> getPlaceholders(String template)
+    public static ArrayList<String> getPlaceholders(String template)
     {
         ArrayList<String> result = new ArrayList<String>();
         
@@ -33,7 +33,7 @@ public class MadLib
         return result;
     }
     
-    private ArrayList<String> getReplacements(ArrayList<String> placeholders)
+    public static ArrayList<String> getReplacements(ArrayList<String> placeholders)
     {
         Scanner input = new Scanner(System.in);
         
@@ -61,11 +61,13 @@ public class MadLib
             
             System.out.println();
         }
+
+        input.close();
         
         return result;
     }
     
-    private String replacePlaceholder(String template, String placeholder, String replacement)
+    public static String replacePlaceholder(String template, String placeholder, String replacement)
     {
         String result = "";
         
@@ -85,7 +87,7 @@ public class MadLib
         return result;
     }
     
-    private String replaceAllPlaceholders(String template)
+    public static String replaceAllPlaceholders(String template)
     {
         String result = "";
         
