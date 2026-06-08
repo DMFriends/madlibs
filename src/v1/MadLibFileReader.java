@@ -1,3 +1,5 @@
+package src.v1;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -10,7 +12,7 @@ import java.nio.file.Paths;
 // DO NOT CHANGE THIS CODE, the program may not work if you do.
 public class MadLibFileReader 
 {
-	private static final String FILENAME = "madlib.txt";
+	private static final String FILENAME = "madlibs.txt";
 	
 	private String template;
 	

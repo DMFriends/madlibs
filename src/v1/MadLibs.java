@@ -1,3 +1,5 @@
+package src.v1;
+
 import java.util.*;
 
 public class MadLibs
