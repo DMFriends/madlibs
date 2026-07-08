@@ -5,17 +5,18 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
 import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class Main extends Application {
 	
 	public static final String APP_VERSION = "v2.0";
 	
-	private MadLibs madLibs = new MadLibs();
 	private ArrayList<String> placeholders;
 	private ArrayList<TextField> inputFields;
 	private TextFlow storyDisplay;
@@ -51,6 +52,15 @@ public class Main extends Application {
 		// Create scene and show stage
 		Scene scene = new Scene(root, 1000, 600);
 		primaryStage.setTitle("MadLibs " + APP_VERSION);
+		
+		primaryStage.getIcons().add(
+			    new Image(
+			        Objects.requireNonNull(
+			            getClass().getResourceAsStream("resources/madlibs.png")
+			        )
+			    )
+			);
+		
 		primaryStage.setScene(scene);
 		primaryStage.show();
 	}
@@ -150,7 +160,7 @@ public class Main extends Application {
 			"-fx-border-radius: 5;"
 		);
 		
-		generateButton.setOnAction(e -> generateStory());
+		generateButton.setOnAction(_ -> generateStory());
 		
 		VBox buttonContainer = new VBox(generateButton);
 		buttonContainer.setAlignment(javafx.geometry.Pos.CENTER);
@@ -188,7 +198,7 @@ public class Main extends Application {
 		}
 		
 		// Generate the story
-		String template = madLibs.madLibFileReader.getMadLibTemplate();
+		String template = MadLibs.madLibFileReader.getMadLibTemplate();
 		buildStoryTextFlow(template, replacements);
 	}
 	
@@ -196,7 +206,6 @@ public class Main extends Application {
 		storyDisplay.getChildren().clear();
 		
 		String result = template;
-		int replacementIndex = 0;
 		
 		for (int i = 0; i < replacements.size(); i++) {
 			String placeholder = placeholders.get(i);
