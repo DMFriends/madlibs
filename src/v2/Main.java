@@ -196,14 +196,27 @@ public class Main extends Application {
 		HBox.setHgrow(spacer, Priority.ALWAYS);
 
 		newStoryButton = new Button("NEW STORY");
-		newStoryButton.setStyle(
+		String newStoryNormalStyle = 
 			"-fx-font-size: 13px; " +
 			"-fx-padding: 6px 12px; " +
 			"-fx-background-color: #8b4513; " +
 			"-fx-text-fill: white; " +
 			"-fx-font-weight: bold; " +
-			"-fx-border-radius: 5;"
-		);
+			"-fx-border-radius: 5;";
+		
+		String newStoryHoverStyle = 
+			"-fx-font-size: 13px; " +
+			"-fx-padding: 6px 12px; " +
+			"-fx-background-color: #a0522d; " +
+			"-fx-text-fill: white; " +
+			"-fx-font-weight: bold; " +
+			"-fx-border-radius: 5;";
+		
+		newStoryButton.setStyle(newStoryNormalStyle);
+		newStoryButton.setOnMouseEntered(_ -> newStoryButton.setStyle(newStoryHoverStyle));
+		newStoryButton.setOnMouseExited(_ -> newStoryButton.setStyle(newStoryNormalStyle));
+
+
 		newStoryButton.setOnAction(_ -> loadNewStory());
 
 		Button copyStoryButton = new Button("COPY STORY");
@@ -269,19 +282,30 @@ public class Main extends Application {
 				if(isReadyToCopy())
 				{
 					textDelay.stop(); // Reset the timer if they click it multiple times rapidly
-			    	copyStoryButton.setStyle(copyPressedStyle);
-			    	copyStoryButton.setText("COPIED!");  
+			    	copyStoryButton.setStyle(copyHoverStyle);
+			    	//copyStoryButton.setText("COPIED!");  
 				}    
 			});
 
 			copyStoryButton.setOnMouseReleased(_ -> {
 				if(isReadyToCopy())
 				{
-			    copyStoryButton.setScaleX(1.0); // Snap the size back up right away
-			    copyStoryButton.setScaleY(1.0);
-			    copyStoryButton.setStyle(copyPressedStyle); // Stay highlighted
+			    // copyStoryButton.setScaleX(1.0); // Snap the size back up right away
+			    // copyStoryButton.setScaleY(1.0);
+				if(copyStoryButton.isHover())
+				{
+					copyStoryButton.setStyle(copyPressedStyle); // Stay highlighted
+					copyStoryButton.setText("COPIED!");  
+					textDelay.play(); // Start the 1.5-second countdown to switch the text back
 				}
-			    textDelay.play(); // Start the 1.5-second countdown to switch the text back
+				else
+				{
+					copyStoryButton.setStyle(copyNormalStyle); // Return to normal style
+					copyStoryButton.setText("COPY STORY");
+				}
+
+				}
+			    
 			});
 
 		copyStoryButton.setOnAction(_ -> copyStoryToClipboard());
