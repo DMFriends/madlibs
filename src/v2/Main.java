@@ -3,17 +3,33 @@ package src.v2;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import javafx.animation.PauseTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Separator;
+import javafx.scene.control.SplitPane;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
-import javafx.scene.layout.*;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 
 public class Main extends Application {
@@ -104,6 +120,45 @@ public class Main extends Application {
 			return Story.fromTemplate(reader.getCurrentStoryTitle(), reader.getMadLibTemplate());
 		}
 	}
+	
+	private String copyStory()
+	{
+		StringBuilder sb = new StringBuilder();
+	    for (Node node : storyDisplay.getChildren()) {
+	        if (node instanceof Text) {
+	            sb.append(((Text) node).getText());
+	        }
+	    }
+	    
+	    return sb.toString();
+	}
+	
+	/**
+	 * Copies the currently rendered story to the system clipboard.
+	 * {@link Clipboard#getSystemClipboard()} delegates to the native clipboard
+	 * on Windows, macOS, and Linux, so no platform-specific handling is needed.
+	 */
+	private void copyStoryToClipboard() {
+		String story = copyStory();
+		
+		if (story.isEmpty()) {
+			showAlert("Generate a story first!");
+			return;
+		}
+
+		ClipboardContent content = new ClipboardContent();
+		content.putString(story);
+		Clipboard.getSystemClipboard().setContent(content);
+	}
+
+	private boolean isReadyToCopy() {
+		String story = copyStory();
+		
+		if (story.isEmpty()) {
+			return false;
+		}
+		return true;
+	}
 
 	/**
 	 * Loads a fresh story in the background (so the UI stays responsive), then
@@ -151,7 +206,88 @@ public class Main extends Application {
 		);
 		newStoryButton.setOnAction(_ -> loadNewStory());
 
-		HBox header = new HBox(titleLabel, spacer, newStoryButton);
+		Button copyStoryButton = new Button("COPY STORY");
+		String copyNormalStyle = 
+			    "-fx-font-size: 13px; " +
+			    "-fx-padding: 6px 12px; " +
+			    "-fx-background-color: #8b4513; " + 
+			    "-fx-text-fill: white; " +
+			    "-fx-font-weight: bold; " +
+			    "-fx-background-radius: 5; " +      
+			    "-fx-border-radius: 5;";
+
+			String copyHoverStyle = 
+			    "-fx-font-size: 13px; " +
+			    "-fx-padding: 6px 12px; " +
+			    "-fx-background-color: #a0522d; " + 
+			    "-fx-text-fill: white; " +
+			    "-fx-font-weight: bold; " +
+			    "-fx-background-radius: 5; " +
+			    "-fx-border-radius: 5;";
+
+			String copyPressedStyle = 
+			    "-fx-font-size: 13px; " +
+			    "-fx-padding: 6px 12px; " +
+			    "-fx-background-color: #00a31b; " + 
+			    "-fx-text-fill: white; " +
+			    "-fx-font-weight: bold; " +
+			    "-fx-background-radius: 5; " +
+			    "-fx-border-radius: 5; " +
+			    "-fx-scale-x: 1; " + 
+			    "-fx-scale-y: 1;";
+
+			copyStoryButton.setStyle(copyNormalStyle);
+
+			PauseTransition textDelay = new PauseTransition(Duration.seconds(1.5));
+			textDelay.setOnFinished(_ -> {
+			    copyStoryButton.setText("COPY STORY");
+			    // If the mouse is still hovering when the timer finishes, keep the hover style
+			    if (copyStoryButton.isHover()) {
+			        copyStoryButton.setStyle(copyHoverStyle);
+			    } else {
+			        copyStoryButton.setStyle(copyNormalStyle);
+			    }
+			});
+
+			copyStoryButton.setOnMouseEntered(_ -> {
+			    // Only apply hover style if the "Copied!" timer isn't running
+			    if (textDelay.getStatus() != javafx.animation.Animation.Status.RUNNING) {
+			        copyStoryButton.setStyle(copyHoverStyle);
+			    }
+			});
+
+			copyStoryButton.setOnMouseExited(_ -> {
+			    // Only return to completely normal if the timer isn't running
+			    if (textDelay.getStatus() != javafx.animation.Animation.Status.RUNNING) {
+			        copyStoryButton.setStyle(copyNormalStyle);
+			    }
+			    copyStoryButton.setScaleX(1.0); 
+			    copyStoryButton.setScaleY(1.0);
+			});
+
+			copyStoryButton.setOnMousePressed(_ -> {
+				if(isReadyToCopy())
+				{
+					textDelay.stop(); // Reset the timer if they click it multiple times rapidly
+			    	copyStoryButton.setStyle(copyPressedStyle);
+			    	copyStoryButton.setText("COPIED!");  
+				}    
+			});
+
+			copyStoryButton.setOnMouseReleased(_ -> {
+				if(isReadyToCopy())
+				{
+			    copyStoryButton.setScaleX(1.0); // Snap the size back up right away
+			    copyStoryButton.setScaleY(1.0);
+			    copyStoryButton.setStyle(copyPressedStyle); // Stay highlighted
+				}
+			    textDelay.play(); // Start the 1.5-second countdown to switch the text back
+			});
+
+		copyStoryButton.setOnAction(_ -> copyStoryToClipboard());
+
+		HBox header = new HBox(titleLabel, spacer, copyStoryButton, newStoryButton);
+		header.setSpacing(10);
 		header.setAlignment(Pos.CENTER_LEFT);
 		storyPanel.getChildren().add(header);
 
@@ -172,15 +308,15 @@ public class Main extends Application {
 			"-fx-padding: 10;"
 		);
 		storyDisplay.setLineSpacing(5);
-		storyDisplay.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+		storyDisplay.setTextAlignment(TextAlignment.CENTER);
 
 		ScrollPane scrollPane = new ScrollPane(storyDisplay);
 		scrollPane.setStyle("-fx-control-inner-background: #f5f5dc;");
 		scrollPane.setFitToWidth(true);
 
 		frameBox.getChildren().add(scrollPane);
-		VBox.setVgrow(scrollPane, javafx.scene.layout.Priority.ALWAYS);
-		VBox.setVgrow(frameBox, javafx.scene.layout.Priority.ALWAYS);
+		VBox.setVgrow(scrollPane, Priority.ALWAYS);
+		VBox.setVgrow(frameBox, Priority.ALWAYS);
 
 		storyPanel.getChildren().add(frameBox);
 
@@ -204,13 +340,22 @@ public class Main extends Application {
 
 		// Create input fields
 		inputFields = new ArrayList<>();
+		
+		// Create random word buttons list (empty)
+		ArrayList<Button> randomWordButtons = new ArrayList<>();
 
 		for (String blank : story.getBlanks()) {
+			
 			HBox fieldContainer = new HBox();
 			fieldContainer.setSpacing(10);
-			fieldContainer.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+			fieldContainer.setAlignment(Pos.CENTER_LEFT);
 
-			Label label = new Label(formatPlaceholder(blank) + ":");
+			String displayLabel = wordListReader.getDisplayLabelOverride(blank);
+			if (displayLabel == null) {
+				displayLabel = formatPlaceholder(blank);
+			}
+
+			Label label = new Label(displayLabel + ":");
 			label.setPrefWidth(150);
 			label.setStyle("-fx-font-size: 12px;");
 
@@ -218,24 +363,81 @@ public class Main extends Application {
 			textField.setPrefWidth(250);
 			textField.setStyle("-fx-font-size: 12px;");
 
-			Button randomWordButton = new Button("Random " + formatPlaceholder(blank));
-			randomWordButton.setStyle(
-				"-fx-font-size: 12px; " +
-				"-fx-padding: 4px 8px; " +
-				"-fx-background-color: #8b4513; " +
-				"-fx-text-fill: white; " +
-				"-fx-font-weight: bold; " +
-				"-fx-border-radius: 5;"
-			);
-			randomWordButton.setOnAction(_ -> {
-				String randomWord = wordListReader.returnRandomWord(blank);
-				textField.setText(randomWord);
+			Button randomWordButton = new Button("Random " + displayLabel);
+			String normalStyle = 
+			    "-fx-font-size: 12px; " +
+			    "-fx-padding: 4px 8px; " +
+			    "-fx-background-color: #8b4513; " +
+			    "-fx-text-fill: white; " +
+			    "-fx-font-weight: bold; " +
+			    "-fx-background-radius: 5; " + // Tip: JavaFX buttons use background-radius for curves
+			    "-fx-border-radius: 5;";
+
+			String hoverStyle = 
+			    "-fx-font-size: 12px; " +
+			    "-fx-padding: 4px 8px; " +
+			    "-fx-background-color: #a0522d; " + // Lighter brown
+			    "-fx-text-fill: white; " +
+			    "-fx-font-weight: bold; " +
+			    "-fx-background-radius: 5; " +
+			    "-fx-border-radius: 5;";
+
+			String pressedStyle = 
+			    "-fx-font-size: 12px; " +
+			    "-fx-padding: 4px 8px; " +
+			    "-fx-background-color: #5c2d0c; " + // Darker brown
+			    "-fx-text-fill: white; " +
+			    "-fx-font-weight: bold; " +
+			    "-fx-background-radius: 5; " +
+			    "-fx-border-radius: 5; " +
+			    "-fx-scale-x: 0.95; " +             // Shrink slightly
+			    "-fx-scale-y: 0.95;";
+
+			randomWordButton.setStyle(normalStyle);
+
+			randomWordButton.setOnMouseEntered(_ -> randomWordButton.setStyle(hoverStyle));
+
+			randomWordButton.setOnMouseExited(_ -> {
+			    randomWordButton.setStyle(normalStyle);
+			    randomWordButton.setScaleX(1.0); // Reset scale in case they drag away while clicking
+			    randomWordButton.setScaleY(1.0);
 			});
+
+			randomWordButton.setOnMousePressed(_ -> randomWordButton.setStyle(pressedStyle));
+
+			randomWordButton.setOnMouseReleased(_ -> randomWordButton.setStyle(hoverStyle));
 
 			fieldContainer.getChildren().addAll(label, textField, randomWordButton);
 			formPanel.getChildren().add(fieldContainer);
 
 			inputFields.add(textField);
+			randomWordButtons.add(randomWordButton);
+		}
+
+		// Set up event handlers for text fields and random word buttons
+		for(int i = 0; i < inputFields.size(); i++) {
+			int nextIndex = i + 1;
+			TextField currentField = inputFields.get(i);
+			Button currentRandomButton = randomWordButtons.get(i);
+			String currentBlank = story.getBlanks().get(i);
+			currentField.setOnAction(_ -> {
+				if (nextIndex < inputFields.size()) {
+					inputFields.get(nextIndex).requestFocus(); //moves to next field
+				} else {
+					currentField.getParent().requestFocus(); //removes focus from last field
+				}
+			});
+			currentRandomButton.setOnAction(_ -> {
+				if (nextIndex < inputFields.size()) {
+					String randomWord = wordListReader.returnRandomWord(currentBlank);
+					currentField.setText(randomWord);
+					inputFields.get(nextIndex).requestFocus(); //moves to next field
+				} else {
+					String randomWord = wordListReader.returnRandomWord(currentBlank);
+					currentField.setText(randomWord);
+					currentField.getParent().requestFocus(); //removes focus from last field
+				}
+			});
 		}
 
 		// Add spacing and generate button
@@ -244,19 +446,57 @@ public class Main extends Application {
 
 		Button generateButton = new Button("GENERATE STORY");
 		generateButton.setPrefWidth(200);
-		generateButton.setStyle(
-			"-fx-font-size: 14px; " +
-			"-fx-padding: 10px; " +
-			"-fx-background-color: #ff8c00; " +
-			"-fx-text-fill: white; " +
-			"-fx-font-weight: bold; " +
-			"-fx-border-radius: 5;"
-		);
+		String generateNormalStyle = 
+		    "-fx-font-size: 14px; " +
+		    "-fx-padding: 10px; " +
+		    "-fx-background-color: #ff8c00; " + // Base orange
+		    "-fx-text-fill: white; " +
+		    "-fx-font-weight: bold; " +
+		    "-fx-background-radius: 5; " +    // Added for smooth corners
+		    "-fx-border-radius: 5;";
+
+		String generateHoverStyle = 
+		    "-fx-font-size: 14px; " +
+		    "-fx-padding: 10px; " +
+		    "-fx-background-color: #ffa502; " + // Slightly lighter orange for hover
+		    "-fx-text-fill: white; " +
+		    "-fx-font-weight: bold; " +
+		    "-fx-background-radius: 5; " +
+		    "-fx-border-radius: 5;";
+
+		String generatePressedStyle = 
+		    "-fx-font-size: 14px; " +
+		    "-fx-padding: 10px; " +
+		    "-fx-background-color: #d35400; " + // Darker orange for click
+		    "-fx-text-fill: white; " +
+		    "-fx-font-weight: bold; " +
+		    "-fx-background-radius: 5; " +
+		    "-fx-border-radius: 5; " +
+		    "-fx-scale-x: 0.95; " +             // Shrink slightly
+		    "-fx-scale-y: 0.95;";
+
+		
+		generateButton.setStyle(generateNormalStyle);
+
+		
+		generateButton.setOnMouseEntered(_ -> generateButton.setStyle(generateHoverStyle));
+
+		generateButton.setOnMouseExited(_ -> {
+		    generateButton.setStyle(generateNormalStyle);
+		    generateButton.setScaleX(1.0); // Reset scale
+		    generateButton.setScaleY(1.0);
+		});
+
+		generateButton.setOnMousePressed(_ -> generateButton.setStyle(generatePressedStyle));
+
+		generateButton.setOnMouseReleased(_ -> generateButton.setStyle(generateHoverStyle));
+
+		
 
 		generateButton.setOnAction(_ -> generateStory());
 
 		VBox buttonContainer = new VBox(generateButton);
-		buttonContainer.setAlignment(javafx.geometry.Pos.CENTER);
+		buttonContainer.setAlignment(Pos.CENTER);
 		buttonContainer.setPadding(new Insets(10, 0, 0, 0));
 		formPanel.getChildren().add(buttonContainer);
 
@@ -279,12 +519,6 @@ public class Main extends Application {
 
 		return result.toString().trim();
 	}
-
-	// private void generateRandomWordForField(TextField field, String placeholder) {
-	// 	// Placeholder for random word generation logic
-	// 	// For now, just fill with a dummy word based on the placeholder
-		
-	// }
 
 	private void generateStory() {
 		// Collect all inputs from text fields
@@ -313,21 +547,46 @@ public class Main extends Application {
 
 		List<String> segments = story.getSegments();
 
+		// Tracks the last character actually emitted so we can detect when a
+		// segment and an answer are glued together with no whitespace between
+		// them (a data-quality quirk of the source templates) and fix it up.
+		char lastChar = '\0';
+
 		for (int i = 0; i < segments.size(); i++) {
-			String segment = segments.get(i);
+			String segment = ensureLeadingSpace(lastChar, segments.get(i));
 			if (!segment.isEmpty()) {
 				storyDisplay.getChildren().add(plainText(segment));
+				lastChar = segment.charAt(segment.length() - 1);
 			}
 
 			// There is one fewer answer than there are segments.
 			if (i < answers.size()) {
 				String answer = answers.get(i);
-				if (startsNewSentence(segment)) {
+				if (startsNewSentence(lastChar)) {
 					answer = capitalizeFirst(answer);
 				}
-				storyDisplay.getChildren().add(answerText(answer));
+				answer = ensureLeadingSpace(lastChar, answer);
+				if (!answer.isEmpty()) {
+					storyDisplay.getChildren().add(answerText(answer));
+					lastChar = answer.charAt(answer.length() - 1);
+				}
 			}
 		}
+	}
+
+	/**
+	 * Prefixes {@code text} with a space if it would otherwise run directly
+	 * into the preceding character with no whitespace between them -- e.g. a
+	 * segment like "with a dog" glued straight onto an answer like "zoom".
+	 */
+	private String ensureLeadingSpace(char precedingChar, String text) {
+		if (text.isEmpty() || precedingChar == '\0') {
+			return text;
+		}
+		if (Character.isLetterOrDigit(precedingChar) && Character.isLetterOrDigit(text.charAt(0))) {
+			return " " + text;
+		}
+		return text;
 	}
 
 	private Text plainText(String content) {
@@ -342,15 +601,19 @@ public class Main extends Application {
 		return text;
 	}
 
-	/** True if the answer following this segment starts a new sentence. */
-	private boolean startsNewSentence(String precedingSegment) {
-		String trimmed = precedingSegment.stripTrailing();
-		if (trimmed.isEmpty()) {
-			// Nothing (yet) before the blank -- it's the very start of the story.
-			return true;
-		}
-		char last = trimmed.charAt(trimmed.length() - 1);
-		return last == '.' || last == '!' || last == '?';
+	/**
+	 * True if an answer follows the given last-emitted character at the start
+	 * of a new sentence: either nothing has been emitted yet ({@code '\0'}),
+	 * or the last real character was sentence-ending punctuation. Using the
+	 * last *emitted* character (rather than just the immediately preceding
+	 * segment's own text) means whitespace-only segments between two blanks
+	 * don't get mistaken for the start of the story.
+	 */
+	private boolean startsNewSentence(char lastEmittedChar) {
+		return lastEmittedChar == '\0'
+				|| lastEmittedChar == '.'
+				|| lastEmittedChar == '!'
+				|| lastEmittedChar == '?';
 	}
 
 	private String capitalizeFirst(String value) {
@@ -365,6 +628,16 @@ public class Main extends Application {
 		alert.setTitle("Input Required");
 		alert.setHeaderText(null);
 		alert.setContentText(message);
+
+		Stage alertStage = (Stage) alert.getDialogPane().getScene().getWindow();
+		alertStage.getIcons().add(
+			new Image(
+				Objects.requireNonNull(
+					getClass().getResourceAsStream("resources/madlibs.png")
+				)
+			)
+		);
+
 		alert.showAndWait();
 	}
 
