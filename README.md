@@ -4,6 +4,8 @@ A simple Java program that creates a MadLib story from a template file.
 The program reads placeholder prompts from `madlib.txt`, asks the user for words,
 and prints the completed story.
 
+This program was written in collaboration with [Boris098](https://github.com/Boris098).
+
 ## Requirements
 
 - Java Development Kit (JDK) 8 or newer
